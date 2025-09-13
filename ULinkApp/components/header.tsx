@@ -1,6 +1,6 @@
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
 import { ULinkLogo } from "@/components/ulink-logo"
+import { CDPHeaderAuth } from "@/components/wallet/cdp-header-auth"
 
 export function Header() {
   return (
@@ -35,13 +35,8 @@ export function Header() {
             Admin
           </Link>
         </nav>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm">
-            Login
-          </Button>
-          <Button size="sm" className="bg-primary-600 hover:bg-primary-700">
-            Sign Up
-          </Button>
+        <div className="flex items-center gap-4">
+          <CDPHeaderAuth />
         </div>
       </div>
     </header>

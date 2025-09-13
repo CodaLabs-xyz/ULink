@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
+import { Web3Provider } from '@/providers/web3-provider'
 
 const fontSans = Inter({
   subsets: ["latin"],
@@ -33,7 +34,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans antialiased", fontSans.variable, fontDisplay.variable)}>
-        {children}
+        <Web3Provider>
+          {children}
+        </Web3Provider>
       </body>
     </html>
   )
