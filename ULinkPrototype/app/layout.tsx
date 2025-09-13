@@ -1,7 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import localFont from "next/font/local"
 import "./globals.css"
 import { cn } from "@/lib/utils"
 
@@ -11,10 +10,11 @@ const fontSans = Inter({
   display: "swap",
 })
 
-const fontDisplay = localFont({
-  src: "../public/fonts/CalSans-SemiBold.woff",
+// Using Inter as display font since CalSans is not available
+const fontDisplay = Inter({
+  subsets: ["latin"],
   variable: "--font-cal-sans",
-  weight: "600",
+  weight: ["600", "700"],
   display: "swap",
 })
 
