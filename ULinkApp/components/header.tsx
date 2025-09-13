@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { ULinkLogo } from "@/components/ulink-logo"
-import { CDPHeaderAuth } from "@/components/wallet/cdp-header-auth"
+import { UnifiedAuth } from "@/components/wallet/unified-auth"
 
 export function Header() {
   return (
@@ -36,7 +36,7 @@ export function Header() {
           </Link>
         </nav>
         <div className="flex items-center gap-4">
-          <CDPHeaderAuth />
+          <UnifiedAuth variant="header" />
         </div>
       </div>
     </header>

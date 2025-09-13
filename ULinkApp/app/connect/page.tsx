@@ -1,8 +1,6 @@
 'use client';
 
-import { CDPAuthentication } from '@/components/wallet/cdp-auth';
-import { SignedInInfo } from '@/components/wallet/signed-in-info';
-import { WalletInfo } from '@/components/wallet/wallet-info';
+import { UnifiedAuth } from '@/components/wallet/unified-auth';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,14 +23,9 @@ export default function ConnectPage() {
           </p>
         </div>
 
-        {/* CDP Authentication Component */}
+        {/* Unified Authentication Component */}
         <div className="flex justify-center">
-          <CDPAuthentication />
-        </div>
-
-        {/* Connected State */}
-        <div className="flex justify-center">
-          <SignedInInfo />
+          <UnifiedAuth />
         </div>
 
         {/* Benefits */}
