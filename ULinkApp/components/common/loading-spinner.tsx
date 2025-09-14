@@ -67,7 +67,7 @@ export function Web3LoadingSpinner() {
     <LoadingSpinner 
       fullScreen 
       size="lg" 
-      text="Initializing Web3..." 
+      text="Initializing ULink..." 
       color="primary" 
     />
   );

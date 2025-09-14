@@ -8,7 +8,7 @@ export function createULinkAuthConfig(overrides?: Partial<AuthConfig>): AuthConf
     createAccountOnLogin: 'evm-smart',
     onchainKitTheme: 'default',
     onchainKitMode: 'auto',
-    loadingText: 'Initializing Web3...',
+    loadingText: 'Initializing ULink...',
     connectPageUrl: '/connect',
     homePageUrl: '/',
     customMessages: {

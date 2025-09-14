@@ -34,7 +34,7 @@ export function Web3Provider({ children, config: customConfig }: Web3ProviderPro
     createAccountOnLogin = "evm-smart",
     onchainKitTheme = 'default',
     onchainKitMode = 'auto',
-    loadingText = "Initializing Web3...",
+    loadingText = "Initializing ULink...",
   } = customConfig || {};
 
   useEffect(() => {
@@ -80,7 +80,8 @@ export function Web3Provider({ children, config: customConfig }: Web3ProviderPro
               },
               paymaster: {
                 url: undefined // Disable paymaster for now
-              }
+              },
+              isTestnet: process.env.NEXT_PUBLIC_CDP_ENVIRONMENT === 'sandbox'
             }}
           >
             {children}

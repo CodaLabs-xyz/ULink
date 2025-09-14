@@ -161,7 +161,24 @@ function UnifiedAuthHeader({
               {wagmiAddress ? (
                 <div className="flex items-center gap-3 w-full">
                   <Identity address={wagmiAddress}>
-                    <OnchainAvatar chain={base} className="h-8 w-8 ring-2 ring-blue-100" />
+                    <OnchainAvatar 
+                      chain={base} 
+                      className="h-8 w-8 ring-2 ring-blue-100"
+                      loadingComponent={
+                        <Avatar className="h-8 w-8 ring-2 ring-blue-100">
+                          <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      }
+                      defaultComponent={
+                        <Avatar className="h-8 w-8 ring-2 ring-blue-100">
+                          <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                      }
+                    />
                   </Identity>
                   <div className="flex flex-col items-start min-w-0 flex-1">
                     <div className="flex items-center gap-1 w-full">
@@ -170,7 +187,7 @@ function UnifiedAuthHeader({
                         chain={base}
                         className="text-sm font-semibold text-gray-800 max-w-[200px] truncate leading-tight"
                       >
-                        <OnchainBadge />
+                        {/* <OnchainBadge /> */}
                       </OnchainName>
                     </div>
                     <span className="text-xs font-medium text-blue-600 max-w-[250px] truncate leading-tight">

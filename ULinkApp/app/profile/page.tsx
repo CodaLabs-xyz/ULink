@@ -1,11 +1,11 @@
 'use client';
 
 import { useIsSignedIn } from '@coinbase/cdp-hooks';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect, useSwitchChain } from 'wagmi';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Copy, ExternalLink, Wallet, CheckCircle, User, Mail, LogOut } from 'lucide-react';
+import { ArrowLeft, Copy, ExternalLink, Wallet, CheckCircle, User, Mail, LogOut, AlertTriangle, RefreshCw } from 'lucide-react';
 import { 
   Avatar as OnchainAvatar, 
   Identity, 
@@ -18,8 +18,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatAddress } from '@/lib/utils';
 import { FundWallet } from '@/components/wallet/fund-wallet';
+import { TokenBalances } from '@/components/wallet/token-balances';
 import { Header } from '@/components/header';
 
 export default function ProfilePage() {
@@ -27,8 +29,10 @@ export default function ProfilePage() {
   const { isSignedIn } = useIsSignedIn();
   const { address, connector, chainId } = useAccount();
   const { disconnect } = useDisconnect();
+  const { switchChain } = useSwitchChain();
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [switchingNetwork, setSwitchingNetwork] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +63,21 @@ export default function ProfilePage() {
     disconnect();
     router.push('/');
   };
+
+  const handleSwitchToBaseSepolia = async () => {
+    if (!switchChain) return;
+    
+    setSwitchingNetwork(true);
+    try {
+      switchChain({ chainId: 84532 }); // Base Sepolia - no await needed as per wagmi docs
+    } catch (error) {
+      console.error('Failed to switch network:', error);
+    } finally {
+      setSwitchingNetwork(false);
+    }
+  };
+
+  const isWrongNetwork = chainId && chainId !== 84532; // Not Base Sepolia
 
   const getChainName = (chainId?: number) => {
     switch (chainId) {
@@ -132,6 +151,38 @@ export default function ProfilePage() {
           </Button>
         </div>
 
+        {/* Network Warning */}
+        {mounted && isWrongNetwork && (
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
+            <AlertTriangle className="h-4 w-4 text-yellow-600" />
+            <AlertDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <strong className="text-yellow-800">Wrong Network Detected</strong>
+                  <p className="text-yellow-700 mt-1">
+                    You're connected to <strong>{getChainName(chainId)}</strong>, but ULink is optimized for <strong>Base Sepolia</strong> testnet.
+                    Switch networks to access full functionality including funding and token balances.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSwitchToBaseSepolia}
+                  disabled={switchingNetwork}
+                  className="ml-4 bg-yellow-600 hover:bg-yellow-700 text-white"
+                >
+                  {switchingNetwork ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Switching...
+                    </>
+                  ) : (
+                    'Switch to Base Sepolia'
+                  )}
+                </Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Main Profile Card */}
           <div className="space-y-6">
@@ -141,9 +192,27 @@ export default function ProfilePage() {
                 <CardTitle className="flex items-center gap-3">
                   {address ? (
                     <Identity address={address}>
-                      <OnchainAvatar className="h-12 w-12" />
+                      <OnchainAvatar 
+                        className="h-12 w-12" 
+                        loadingComponent={
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
+                              <User className="h-6 w-6" />
+                            </AvatarFallback>
+                          </Avatar>
+                        }
+                        defaultComponent={
+                          <Avatar className="h-12 w-12">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
+                              <User className="h-6 w-6" />
+                            </AvatarFallback>
+                          </Avatar>
+                        }
+                      />
                       <div>
-                        <OnchainName className="text-xl font-semibold">
+                        <OnchainName 
+                          className="text-xl font-semibold"
+                        >
                           <OnchainBadge />
                         </OnchainName>
                         <p className="text-sm text-gray-600">
@@ -307,6 +376,9 @@ export default function ProfilePage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Token Balances */}
+            <TokenBalances />
+
             {/* Fund Wallet */}
             <FundWallet onSuccess={() => console.log('Wallet funded successfully!')} />
 
@@ -316,7 +388,23 @@ export default function ProfilePage() {
                 <div className="flex flex-col items-center space-y-4">
                   {address && (
                     <Identity address={address}>
-                      <OnchainAvatar className="w-16 h-16" />
+                      <OnchainAvatar 
+                        className="w-16 h-16"
+                        loadingComponent={
+                          <Avatar className="w-16 h-16">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
+                              <User className="h-8 w-8" />
+                            </AvatarFallback>
+                          </Avatar>
+                        }
+                        defaultComponent={
+                          <Avatar className="w-16 h-16">
+                            <AvatarFallback className="bg-blue-100 text-blue-600 text-lg font-semibold">
+                              <User className="h-8 w-8" />
+                            </AvatarFallback>
+                          </Avatar>
+                        }
+                      />
                       <OnchainName className="text-lg font-semibold text-gray-900">
                         <OnchainBadge />
                       </OnchainName>
