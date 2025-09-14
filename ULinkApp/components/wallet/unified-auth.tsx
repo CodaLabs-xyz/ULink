@@ -21,10 +21,10 @@ import {
   Avatar as OnchainAvatar, 
   Identity, 
   Name as OnchainName, 
-  Badge as OnchainBadge, 
-  Address as OnchainAddress 
+  Badge as OnchainBadge
 } from '@coinbase/onchainkit/identity';
 import { useChainId } from 'wagmi';
+import { base, mainnet } from 'viem/chains';
 
 interface UnifiedAuthProps {
   onAuthSuccess?: () => void;
@@ -161,15 +161,17 @@ function UnifiedAuthHeader({
               {wagmiAddress ? (
                 <div className="flex items-center gap-3 w-full">
                   <Identity address={wagmiAddress}>
-                    <OnchainAvatar className="h-8 w-8 ring-2 ring-blue-100" />
+                    <OnchainAvatar chain={base} className="h-8 w-8 ring-2 ring-blue-100" />
                   </Identity>
                   <div className="flex flex-col items-start min-w-0 flex-1">
                     <div className="flex items-center gap-1 w-full">
-                      <Identity address={wagmiAddress}>
-                        <OnchainName className="text-sm font-semibold text-gray-800 max-w-[200px] truncate leading-tight">
-                          {/* <OnchainBadge /> */}
-                        </OnchainName>
-                      </Identity>
+                      <OnchainName 
+                        address={wagmiAddress}
+                        chain={base}
+                        className="text-sm font-semibold text-gray-800 max-w-[200px] truncate leading-tight"
+                      >
+                        <OnchainBadge />
+                      </OnchainName>
                     </div>
                     <span className="text-xs font-medium text-blue-600 max-w-[250px] truncate leading-tight">
                       {wagmiAddress.slice(0, 5)}...{wagmiAddress.slice(-6)}
@@ -196,18 +198,28 @@ function UnifiedAuthHeader({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuItem className="p-4 focus:bg-gray-50">
+            {/* <DropdownMenuItem className="p-4 focus:bg-gray-50">
               {wagmiAddress ? (
-                <>
-                <div className="flex items-center justify-center gap-3 w-full">
-                  <span className="text-xs text-blue-600 truncate">
-                    {wagmiAddress.slice(0, 5)}...{wagmiAddress.slice(-6)}
-                  </span>
-                  <span className="text-xs text-green-600 mx-2">
-                    {isSignedIn ? 'CDP Smart Account' : 'Browser Wallet'}
-                  </span>
-                </div>
-              </>
+                <Identity address={wagmiAddress}>
+                  <div className="flex items-center gap-3 w-full">
+                    <OnchainAvatar chain={base} className="h-10 w-10" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <OnchainName 
+                        address={wagmiAddress}
+                        chain={base}
+                        className="font-semibold text-gray-900 truncate"
+                      >
+                        <OnchainBadge />
+                      </OnchainName>
+                      <span className="text-xs text-blue-600 truncate">
+                        {wagmiAddress.slice(0, 5)}...{wagmiAddress.slice(-6)}
+                      </span>
+                      <span className="text-xs text-green-600 mt-1">
+                        {isSignedIn ? 'CDP Smart Account' : 'Browser Wallet'}
+                      </span>
+                    </div>
+                  </div>
+                </Identity>
               ) : (
                 <div className="flex flex-col">
                   <span className="font-medium text-gray-900">✅ Wallet Connected</span>
@@ -217,7 +229,7 @@ function UnifiedAuthHeader({
                 </div>
               )}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem 
               onClick={handleSignOut}
               disabled={isLoading}
