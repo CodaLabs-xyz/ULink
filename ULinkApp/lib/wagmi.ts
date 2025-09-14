@@ -3,51 +3,83 @@ import { base, baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 import { createCDPEmbeddedWalletConnector } from '@coinbase/cdp-wagmi';
 
-export function getConfig() {
-  // Create CDP Embedded Wallet connector for social login
-  const cdpConnector = createCDPEmbeddedWalletConnector({
-    cdpConfig: {
-      projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID!,
-    },
-    providerConfig: {
-      chains: [base, baseSepolia],
-      transports: {
-        [base.id]: http(),
-        [baseSepolia.id]: http(),
+export interface WagmiConfigOptions {
+  appName?: string;
+  appDescription?: string;
+  appUrl?: string;
+  iconUrl?: string;
+  chains?: readonly [any, ...any[]];
+  enableCDP?: boolean;
+  enableWalletConnect?: boolean;
+}
+
+export function createULinkWagmiConfig(options?: WagmiConfigOptions) {
+  const {
+    appName = 'ULink',
+    appDescription = 'Your Links, Beautifully Organized',
+    appUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000',
+    iconUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev/icon.png' : 'http://localhost:3000/icon.png',
+    chains = [base, baseSepolia],
+    enableCDP = true,
+    enableWalletConnect = true,
+  } = options || {};
+
+  const connectors = [];
+
+  // Add CDP Embedded Wallet connector if enabled
+  if (enableCDP && process.env.NEXT_PUBLIC_CDP_PROJECT_ID) {
+    const cdpConnector = createCDPEmbeddedWalletConnector({
+      cdpConfig: {
+        projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID,
       },
-    },
-  });
+      providerConfig: {
+        chains,
+        transports: chains.reduce((acc, chain) => {
+          acc[chain.id] = http();
+          return acc;
+        }, {} as Record<number, ReturnType<typeof http>>),
+      },
+    });
+    connectors.push(cdpConnector);
+  }
+
+  // Add standard wallet connectors
+  connectors.push(injected());
+  
+  connectors.push(coinbaseWallet({
+    appName,
+    preference: 'smartWalletOnly',
+  }));
+
+  // Add WalletConnect if enabled and configured
+  if (enableWalletConnect && process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
+    connectors.push(walletConnect({
+      projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID,
+      metadata: {
+        name: appName,
+        description: appDescription,
+        url: appUrl,
+        icons: [iconUrl],
+      },
+    }));
+  }
 
   return createConfig({
-    chains: [base, baseSepolia],
-    connectors: [
-      cdpConnector, // CDP Embedded Wallet with social login (prioritized)
-      injected(),
-      coinbaseWallet({
-        appName: 'ULink',
-        preference: 'smartWalletOnly',
-      }),
-      ...(process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ? [
-        walletConnect({
-          projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!,
-          metadata: {
-            name: 'ULink',
-            description: 'Your Links, Beautifully Organized',
-            url: process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000',
-            icons: [process.env.NODE_ENV === 'production' ? 'https://ulink.dev/icon.png' : 'http://localhost:3000/icon.png'],
-          },
-        })
-      ] : []),
-    ],
+    chains,
+    connectors,
     storage: createStorage({
       storage: cookieStorage,
     }),
     ssr: true,
-    transports: {
-      [base.id]: http(),
-      [baseSepolia.id]: http(),
-    },
+    transports: chains.reduce((acc, chain) => {
+      acc[chain.id] = http();
+      return acc;
+    }, {} as Record<number, ReturnType<typeof http>>),
   });
+}
+
+export function getConfig() {
+  return createULinkWagmiConfig();
 }
 
 declare module 'wagmi' {

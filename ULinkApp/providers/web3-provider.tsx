@@ -11,37 +11,55 @@ import { getConfig } from '@/lib/wagmi';
 
 interface Web3ProviderProps {
   children: ReactNode;
+  config?: {
+    appName?: string;
+    logoUrl?: string;
+    authMethods?: ("email" | "sms")[];
+    createAccountOnLogin?: "evm-smart" | "evm-externally-owned";
+    onchainKitTheme?: 'default' | 'base' | 'cyberpunk' | 'hacker';
+    onchainKitMode?: 'auto' | 'light' | 'dark';
+    loadingText?: string;
+  };
 }
 
-// CDP Configuration
-const CDP_CONFIG: Config = {
-  projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID ?? "",
-  createAccountOnLogin: "evm-smart", // Smart Account for gasless transactions
-};
-
-// App Configuration for CDP React
-const APP_CONFIG: AppConfig = {
-  name: "ULink",
-  logoUrl: "/logo.svg",
-  authMethods: ["email", "sms"], // Enable both email and SMS authentication
-};
-
-export function Web3Provider({ children }: Web3ProviderProps) {
+export function Web3Provider({ children, config: customConfig }: Web3ProviderProps) {
   const [queryClient] = useState(() => new QueryClient());
   const [config] = useState(() => getConfig());
   const [mounted, setMounted] = useState(false);
+
+  const {
+    appName = "ULink",
+    logoUrl = "/logo.svg",
+    authMethods = ["email", "sms"],
+    createAccountOnLogin = "evm-smart",
+    onchainKitTheme = 'default',
+    onchainKitMode = 'auto',
+    loadingText = "Initializing Web3...",
+  } = customConfig || {};
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // CDP Configuration
+  const CDP_CONFIG: Config = {
+    projectId: process.env.NEXT_PUBLIC_CDP_PROJECT_ID ?? "",
+    createAccountOnLogin,
+  };
+
+  // App Configuration for CDP React
+  const APP_CONFIG: AppConfig = {
+    name: appName,
+    logoUrl,
+    authMethods,
+  };
+
   if (!mounted) {
-    // During hydration, render a loading wrapper to prevent provider context issues
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-sm text-gray-600">Initializing Web3...</p>
+          <p className="text-sm text-gray-600">{loadingText}</p>
         </div>
       </div>
     );
@@ -56,9 +74,9 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             chain={baseSepolia}
             config={{
               appearance: {
-                name: 'ULink',
-                mode: 'auto',
-                theme: 'default'
+                name: appName,
+                mode: onchainKitMode,
+                theme: onchainKitTheme
               }
             }}
           >
