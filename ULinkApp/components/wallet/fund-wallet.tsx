@@ -1,18 +1,16 @@
 'use client';
 
-import { FundModal, type FundModalProps } from "@coinbase/cdp-react";
-import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, CreditCard, DollarSign, Wallet } from "lucide-react";
+import { AlertTriangle, DollarSign, Wallet, CheckCircle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-import { getBuyOptions, createBuyQuote } from "@/lib/onramp-api";
+import { Button } from "@/components/ui/button";
+import { FundButton, getOnrampBuyUrl } from '@coinbase/onchainkit/fund';
 
 /**
- * A component that wraps the FundModal component for wallet funding
+ * A component that provides wallet funding using OnchainKit's FundButton
  *
  * @param props - The props for the FundWallet component
  * @param props.onSuccess - The callback function to call when the onramp purchase is successful
@@ -25,32 +23,75 @@ interface FundWalletProps {
 
 export function FundWallet({ onSuccess, className }: FundWalletProps) {
   const { address, chainId } = useAccount();
-  const [showModal, setShowModal] = useState(false);
+  const [fundingUrl, setFundingUrl] = useState<string>('');
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const fetchBuyQuote: FundModalProps["fetchBuyQuote"] = useCallback(async params => {
-    return createBuyQuote(params);
-  }, []);
-
-  const fetchBuyOptions: FundModalProps["fetchBuyOptions"] = useCallback(async params => {
-    return getBuyOptions(params);
-  }, []);
-
-  const handleSuccess = () => {
-    console.log('🎉 Onramp funding successful!');
-    setShowModal(false);
-    onSuccess?.();
-  };
-
-  const getNetworkName = (chainId?: number) => {
-    // For onramp, always use 'base' regardless of testnet/mainnet
-    // The sandbox/production mode is controlled by CDP_ENVIRONMENT, not network param
+  const getChainName = (chainId?: number) => {
     switch (chainId) {
-      case 84532: return 'base'; // Base Sepolia testnet uses 'base' for onramp
-      case 8453: return 'base';  // Base mainnet
-      case 1: return 'ethereum'; // Ethereum mainnet
-      default: return 'base';    // Default to Base for onramp compatibility
+      case 84532: return 'Base Sepolia';
+      case 8453: return 'Base';
+      case 1: return 'Ethereum';
+      default: return `Chain ${chainId}`;
     }
   };
+
+  // Generate onramp URL using session token approach
+  useEffect(() => {
+    if (!address) return;
+    
+    const generateFundingUrl = async () => {
+      setIsLoadingUrl(true);
+      setError(null);
+      
+      try {
+        console.log('Generating session token for address:', address);
+
+        // Get session token from our API
+        const response = await fetch('/api/onramp/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            addresses: [{
+              address: address,
+              blockchains: ['base']
+            }],
+            assets: ['ETH', 'USDC']
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.details || errorData.error || 'Failed to create session token');
+        }
+
+        const { token: sessionToken } = await response.json();
+        console.log('Session token received, generating URL...');
+
+        // Use OnchainKit's getOnrampBuyUrl with sessionToken
+        const onrampUrl = getOnrampBuyUrl({
+          sessionToken: sessionToken,
+          presetFiatAmount: 20,
+          fiatCurrency: 'USD',
+          defaultAsset: 'USDC'
+          // No redirectUrl - let popup handle completion naturally
+        });
+
+        console.log('Generated funding URL:', onrampUrl);
+        setFundingUrl(onrampUrl);
+        
+      } catch (err) {
+        console.error('Failed to generate funding URL:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setIsLoadingUrl(false);
+      }
+    };
+
+    generateFundingUrl();
+  }, [address]);
+
 
   if (!address) {
     return (
@@ -108,35 +149,50 @@ export function FundWallet({ onSuccess, className }: FundWalletProps) {
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-600">Network</span>
               <Badge variant="secondary" className="text-xs">
-                {getNetworkName(chainId)}
+                {getChainName(chainId)}
               </Badge>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="font-semibold text-blue-600">$10</div>
-                <div className="text-xs text-gray-600">Quick</div>
-              </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="font-semibold text-blue-600">$25</div>
-                <div className="text-xs text-gray-600">Popular</div>
-              </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <div className="font-semibold text-blue-600">$50</div>
-                <div className="text-xs text-gray-600">Value</div>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-4">
+                Buy USDC instantly with your credit card or bank account
+              </p>
+              
+              {error && (
+                <Alert className="mb-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription className="text-sm">
+                    <strong>Error:</strong> {error}
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="w-full">
+                {isLoadingUrl ? (
+                  <div className="flex items-center justify-center p-4 bg-gray-100 rounded-lg">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                    <span className="text-sm text-gray-600">Preparing funding...</span>
+                  </div>
+                ) : fundingUrl ? (
+                  <FundButton 
+                    fundingUrl={fundingUrl}
+                    openIn="popup"
+                    onPopupClose={() => {
+                      console.log('🎉 Funding popup closed - showing success message');
+                      setShowSuccess(true);
+                    }}
+                  >
+                    Buy USDC
+                  </FundButton>
+                ) : (
+                  <div className="p-4 bg-gray-100 rounded-lg">
+                    <span className="text-sm text-gray-600">Unable to load funding options</span>
+                  </div>
+                )}
               </div>
             </div>
-
-            <Button 
-              onClick={() => setShowModal(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              size="lg"
-            >
-              <CreditCard className="mr-2 h-4 w-4" />
-              Fund Wallet
-            </Button>
           </div>
 
           <Alert>
@@ -156,26 +212,59 @@ export function FundWallet({ onSuccess, className }: FundWalletProps) {
           </Alert>
         </CardContent>
       </Card>
-
-      {showModal && (
-        <FundModal
-          country="US"
-          subdivision="CA"
-          cryptoCurrency="eth"
-          fiatCurrency="usd"
-          fetchBuyQuote={fetchBuyQuote}
-          fetchBuyOptions={fetchBuyOptions}
-          network={getNetworkName(chainId)}
-          presetAmountInputs={[10, 25, 50]}
-          onSuccess={handleSuccess}
-        />
-      )}
       
       {/* Debug info - remove in production */}
       {process.env.NODE_ENV === 'development' && (
         <div className="mt-2 p-2 bg-gray-100 rounded text-xs text-gray-600">
-          <strong>Debug:</strong> ChainID: {chainId}, Network: {getNetworkName(chainId)}, 
-          CDP_ENV: {process.env.CDP_ENVIRONMENT || 'not set'}
+          <strong>Debug:</strong> ChainID: {chainId}, Network: {getChainName(chainId)}, 
+          CDP_ENV: {process.env.NEXT_PUBLIC_CDP_ENVIRONMENT || 'not set'}, 
+          App URL: {process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="bg-white max-w-md w-full">
+            <CardHeader className="text-center">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+              <CardTitle className="text-xl text-green-800">Transaction Completed!</CardTitle>
+              <CardDescription>
+                Your USDC purchase has been processed. The funds should appear in your wallet shortly.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Asset Purchased</span>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">USDC</Badge>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Network</span>
+                <Badge variant="secondary" className="bg-blue-100 text-blue-800">Base</Badge>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  onClick={() => {
+                    setShowSuccess(false);
+                    onSuccess?.();
+                  }}
+                  className="flex-1"
+                >
+                  Continue to App
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowSuccess(false)}
+                  className="px-3"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

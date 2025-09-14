@@ -3,6 +3,9 @@ import { base, baseSepolia } from 'wagmi/chains';
 import { coinbaseWallet, injected, walletConnect } from 'wagmi/connectors';
 import { createCDPEmbeddedWalletConnector } from '@coinbase/cdp-wagmi';
 
+// Global config instance to prevent multiple initializations
+let globalConfig: ReturnType<typeof createULinkWagmiConfig> | null = null;
+
 export interface WagmiConfigOptions {
   appName?: string;
   appDescription?: string;
@@ -17,11 +20,12 @@ export function createULinkWagmiConfig(options?: WagmiConfigOptions) {
   const {
     appName = 'ULink',
     appDescription = 'Your Links, Beautifully Organized',
-    appUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000',
-    iconUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev/icon.png' : 'http://localhost:3000/icon.png',
+    appUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000'),
+    iconUrl = `${process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000')}/icon.png`,
     chains = [baseSepolia, base], // Prioritize Base Sepolia testnet
     enableCDP = true,
-    enableWalletConnect = true,
+    // Disable WalletConnect in development with ngrok to avoid allowlist errors
+    enableWalletConnect = process.env.NODE_ENV === 'production' || !process.env.NEXT_PUBLIC_APP_URL?.includes('ngrok.io'),
   } = options || {};
 
   const connectors = [];
@@ -79,7 +83,10 @@ export function createULinkWagmiConfig(options?: WagmiConfigOptions) {
 }
 
 export function getConfig() {
-  return createULinkWagmiConfig();
+  if (!globalConfig) {
+    globalConfig = createULinkWagmiConfig();
+  }
+  return globalConfig;
 }
 
 declare module 'wagmi' {
