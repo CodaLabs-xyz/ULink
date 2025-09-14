@@ -21,9 +21,25 @@ import {
 interface UnifiedAuthProps {
   onAuthSuccess?: () => void;
   variant?: 'header' | 'full';
+  config?: {
+    connectPageUrl?: string;
+    homePageUrl?: string;
+    customMessages?: {
+      connecting?: string;
+      connected?: string;
+      connectWallet?: string;
+      signInEmail?: string;
+      chooseConnection?: string;
+      connectBrowser?: string;
+      cdpDescription?: string;
+      browserDescription?: string;
+    };
+    excludeConnectors?: string[];
+    onSignOut?: () => void;
+  };
 }
 
-export function UnifiedAuth({ onAuthSuccess, variant = 'full' }: UnifiedAuthProps) {
+export function UnifiedAuth({ onAuthSuccess, variant = 'full', config = {} }: UnifiedAuthProps) {
   const [mounted, setMounted] = useState(false);
   
   useEffect(() => {
@@ -49,10 +65,18 @@ export function UnifiedAuth({ onAuthSuccess, variant = 'full' }: UnifiedAuthProp
     );
   }
 
-  return variant === 'header' ? <UnifiedAuthHeader onAuthSuccess={onAuthSuccess} /> : <UnifiedAuthFull onAuthSuccess={onAuthSuccess} />;
+  return variant === 'header' ? 
+    <UnifiedAuthHeader onAuthSuccess={onAuthSuccess} config={config} /> : 
+    <UnifiedAuthFull onAuthSuccess={onAuthSuccess} config={config} />;
 }
 
-function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
+function UnifiedAuthHeader({ 
+  onAuthSuccess, 
+  config 
+}: { 
+  onAuthSuccess?: () => void;
+  config: UnifiedAuthProps['config'];
+}) {
   const router = useRouter();
   const { isInitialized } = useIsInitialized();
   const { isSignedIn } = useIsSignedIn();
@@ -65,6 +89,13 @@ function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
   
   const isConnected = isSignedIn || !!wagmiAddress;
 
+  const {
+    connectPageUrl = '/connect',
+    homePageUrl = '/',
+    customMessages = {},
+    onSignOut: customOnSignOut,
+  } = config || {};
+
   const handleSignOut = async () => {
     try {
       setIsLoading(true);
@@ -76,8 +107,12 @@ function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
       }
       setError(null);
       
-      // Redirect to home page after successful disconnect
-      router.push('/');
+      // Use custom callback or default to home page
+      if (customOnSignOut) {
+        customOnSignOut();
+      } else {
+        router.push(homePageUrl);
+      }
     } catch (error: any) {
       console.error('Sign out error:', error);
       setError(error?.message || 'Failed to sign out');
@@ -106,7 +141,9 @@ function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
                   <User className="h-3 w-3" />
                 </AvatarFallback>
               </Avatar>
-              <span className="text-sm font-medium">Connected</span>
+              <span className="text-sm font-medium">
+                {customMessages.connected || 'Connected'}
+              </span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -125,7 +162,7 @@ function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
               className="text-red-600 focus:text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              {isLoading ? 'Disconnecting...' : 'Disconnect'}
+              {isLoading ? (customMessages.connecting || 'Disconnecting...') : 'Disconnect'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -143,15 +180,20 @@ function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
     <Button 
       variant="default" 
       className="h-9 px-4"
-      onClick={() => window.location.href = '/connect'}
+      onClick={() => window.location.href = connectPageUrl}
     >
-      Connect Wallet
+      {customMessages.connectWallet || 'Connect Wallet'}
     </Button>
   );
 }
 
-
-function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
+function UnifiedAuthFull({ 
+  onAuthSuccess, 
+  config 
+}: { 
+  onAuthSuccess?: () => void;
+  config: UnifiedAuthProps['config'];
+}) {
   const { isInitialized } = useIsInitialized();
   const { isSignedIn } = useIsSignedIn();
   const { address: wagmiAddress } = useAccount();
@@ -164,6 +206,11 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
 
   // Track if this is initial mount to prevent auto-redirect on page load
   const [isInitialMount, setIsInitialMount] = useState(true);
+
+  const {
+    customMessages = {},
+    excludeConnectors = ['cdpEmbeddedWallet', 'cdp-embedded-wallet', 'walletConnect'],
+  } = config || {};
   
   useEffect(() => {
     setIsInitialMount(false);
@@ -219,11 +266,9 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
 
   // Get available wallet connectors (excluding CDP embedded wallet and specific wallets)
   const walletConnectors = connectors.filter(connector => 
-    connector.id !== 'cdpEmbeddedWallet' && 
-    connector.id !== 'cdp-embedded-wallet' &&
+    !excludeConnectors.includes(connector.id) &&
     connector.id !== 'io.metamask' &&
-    connector.id !== 'app.phantom' &&
-    connector.id !== 'walletConnect' // Hide WalletConnect for now as it requires more setup
+    connector.id !== 'app.phantom'
   );
 
   if (!isInitialized) {
@@ -249,7 +294,9 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
               <User className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-green-600">Connected!</h3>
+              <h3 className="text-lg font-semibold text-green-600">
+                {customMessages.connected || 'Connected!'}
+              </h3>
               <p className="text-sm text-muted-foreground">
                 {isSignedIn ? 'CDP Smart Account Ready' : 'Browser Wallet Connected'}
               </p>
@@ -263,9 +310,11 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center pb-4">
-        <CardTitle className="text-xl font-bold">Connect Your Wallet</CardTitle>
+        <CardTitle className="text-xl font-bold">
+          {customMessages.connectWallet || 'Connect Your Wallet'}
+        </CardTitle>
         <CardDescription>
-          Choose how you'd like to connect to ULink
+          {customMessages.chooseConnection || "Choose how you'd like to connect to ULink"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -274,7 +323,7 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Mail className="w-4 h-4" />
             <Phone className="w-4 h-4" />
-            <span>Sign in with Email or Phone</span>
+            <span>{customMessages.signInEmail || 'Sign in with Email or Phone'}</span>
           </div>
           
           {/* Custom CDP Button */}
@@ -283,7 +332,7 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
             className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
           >
             <Mail className="w-4 h-4" />
-            Sign in with Email or Phone
+            {customMessages.signInEmail || 'Sign in with Email or Phone'}
           </Button>
           
           {/* Hidden CDP AuthButton */}
@@ -292,7 +341,7 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
           </div>
           
           <p className="text-xs text-muted-foreground text-center">
-            Creates a gasless Smart Account - no browser extension needed
+            {customMessages.cdpDescription || 'Creates a gasless Smart Account - no browser extension needed'}
           </p>
         </div>
 
@@ -306,7 +355,7 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
             <Wallet className="w-4 h-4" />
-            <span>Connect Browser Wallet</span>
+            <span>{customMessages.connectBrowser || 'Connect Browser Wallet'}</span>
           </div>
           
           <div className="space-y-2">
@@ -341,7 +390,7 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
           </div>
           
           <p className="text-xs text-muted-foreground text-center">
-            Connect your existing wallet (MetaMask, Coinbase Wallet, etc.)
+            {customMessages.browserDescription || 'Connect your existing wallet (MetaMask, Coinbase Wallet, etc.)'}
           </p>
         </div>
 
