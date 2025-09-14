@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { LogOut, User, Mail, Phone, Wallet } from 'lucide-react';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
@@ -17,6 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { 
+  Avatar as OnchainAvatar, 
+  Identity, 
+  Name as OnchainName, 
+  Badge as OnchainBadge
+} from '@coinbase/onchainkit/identity';
+import { useChainId } from 'wagmi';
+import { base, mainnet } from 'viem/chains';
 
 interface UnifiedAuthProps {
   onAuthSuccess?: () => void;
@@ -81,8 +89,22 @@ function UnifiedAuthHeader({
   const { isInitialized } = useIsInitialized();
   const { isSignedIn } = useIsSignedIn();
   const { signOut } = useSignOut();
-  const { address: wagmiAddress } = useAccount();
+  const { address: wagmiAddress, connector } = useAccount();
   const { disconnect } = useDisconnect();
+  const chainId = useChainId();
+  
+  // Debug logging for Base name resolution
+  React.useEffect(() => {
+    if (wagmiAddress && chainId) {
+      console.log('🔍 Identity Debug:', {
+        address: wagmiAddress,
+        chainId,
+        chainName: chainId === 8453 ? 'Base Mainnet' : chainId === 84532 ? 'Base Sepolia' : 'Other',
+        connector: connector?.name,
+        note: 'Base names are on Base Mainnet (8453), OnchainKit configured for Base Mainnet resolution'
+      });
+    }
+  }, [wagmiAddress, chainId, connector]);
   
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -135,27 +157,79 @@ function UnifiedAuthHeader({
       <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2 h-9 px-3">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="bg-primary-100 text-primary-600 text-xs">
-                  <User className="h-3 w-3" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium">
-                {customMessages.connected || 'Connected'}
-              </span>
+            <Button variant="ghost" className="flex items-center gap-3 h-12 px-4 min-w-[200px] border border-gray-200 hover:border-gray-300 rounded-lg bg-white hover:bg-gray-50 shadow-sm">
+              {wagmiAddress ? (
+                <div className="flex items-center gap-3 w-full">
+                  <Identity address={wagmiAddress}>
+                    <OnchainAvatar chain={base} className="h-8 w-8 ring-2 ring-blue-100" />
+                  </Identity>
+                  <div className="flex flex-col items-start min-w-0 flex-1">
+                    <div className="flex items-center gap-1 w-full">
+                      <OnchainName 
+                        address={wagmiAddress}
+                        chain={base}
+                        className="text-sm font-semibold text-gray-800 max-w-[200px] truncate leading-tight"
+                      >
+                        <OnchainBadge />
+                      </OnchainName>
+                    </div>
+                    <span className="text-xs font-medium text-blue-600 max-w-[250px] truncate leading-tight">
+                      {wagmiAddress.slice(0, 5)}...{wagmiAddress.slice(-6)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Avatar className="h-8 w-8 ring-2 ring-blue-100">
+                    <AvatarFallback className="bg-blue-100 text-blue-700 text-sm">
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-semibold text-gray-800 leading-tight">
+                      {customMessages.connected || 'Connected'}
+                    </span>
+                    <span className="text-xs font-medium text-blue-600 leading-tight">
+                      Wallet Active
+                    </span>
+                  </div>
+                </>
+              )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem className="text-green-600">
-              <div className="flex flex-col">
-                <span className="font-medium">✅ Wallet Connected</span>
-                <span className="text-xs text-muted-foreground">
-                  {isSignedIn ? 'CDP Smart Account' : 'Browser Wallet'}
-                </span>
-              </div>
+          <DropdownMenuContent align="end" className="w-72">
+            {/* <DropdownMenuItem className="p-4 focus:bg-gray-50">
+              {wagmiAddress ? (
+                <Identity address={wagmiAddress}>
+                  <div className="flex items-center gap-3 w-full">
+                    <OnchainAvatar chain={base} className="h-10 w-10" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <OnchainName 
+                        address={wagmiAddress}
+                        chain={base}
+                        className="font-semibold text-gray-900 truncate"
+                      >
+                        <OnchainBadge />
+                      </OnchainName>
+                      <span className="text-xs text-blue-600 truncate">
+                        {wagmiAddress.slice(0, 5)}...{wagmiAddress.slice(-6)}
+                      </span>
+                      <span className="text-xs text-green-600 mt-1">
+                        {isSignedIn ? 'CDP Smart Account' : 'Browser Wallet'}
+                      </span>
+                    </div>
+                  </div>
+                </Identity>
+              ) : (
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">✅ Wallet Connected</span>
+                  <span className="text-xs text-gray-600">
+                    {isSignedIn ? 'CDP Smart Account' : 'Browser Wallet'}
+                  </span>
+                </div>
+              )}
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
+            <DropdownMenuSeparator /> */}
             <DropdownMenuItem 
               onClick={handleSignOut}
               disabled={isLoading}

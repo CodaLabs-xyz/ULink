@@ -19,7 +19,7 @@ export function createULinkWagmiConfig(options?: WagmiConfigOptions) {
     appDescription = 'Your Links, Beautifully Organized',
     appUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000',
     iconUrl = process.env.NODE_ENV === 'production' ? 'https://ulink.dev/icon.png' : 'http://localhost:3000/icon.png',
-    chains = [base, baseSepolia],
+    chains = [baseSepolia, base], // Prioritize Base Sepolia testnet
     enableCDP = true,
     enableWalletConnect = true,
   } = options || {};

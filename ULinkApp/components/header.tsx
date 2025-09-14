@@ -11,6 +11,9 @@ export function Header() {
   const { isSignedIn } = useIsSignedIn();
   
   const isConnected = isSignedIn || !!wagmiAddress;
+  const currentAddress = wagmiAddress || '';
+  const adminWallet = process.env.NEXT_PUBLIC_ADMIN_WALLET;
+  const isAdmin = currentAddress && adminWallet && currentAddress.toLowerCase() === adminWallet.toLowerCase();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-silver-200 bg-white/80 backdrop-blur-lg">
@@ -39,11 +42,19 @@ export function Header() {
               >
                 Dashboard
               </Link>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium text-text-secondary transition-colors hover:text-primary-600"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
-                href="/admin"
+                href="/profile"
                 className="text-sm font-medium text-text-secondary transition-colors hover:text-primary-600"
               >
-                Admin
+                Profile
               </Link>
             </>
           )}
