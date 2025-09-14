@@ -2,10 +2,103 @@
 
 import { UnifiedAuth } from '@/components/wallet/unified-auth';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useAccount } from 'wagmi';
+import { useIsSignedIn } from '@coinbase/cdp-hooks';
 
 export default function ConnectPage() {
+  const router = useRouter();
+  const { address: wagmiAddress } = useAccount();
+  const { isSignedIn } = useIsSignedIn();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  const isAlreadyConnected = isSignedIn || !!wagmiAddress;
+  
+  // If user is already connected, redirect to dashboard
+  useEffect(() => {
+    if (isAlreadyConnected && !showSuccess) {
+      setIsRedirecting(true);
+      router.push('/dashboard');
+    }
+  }, [isAlreadyConnected, showSuccess, router]);
+  
+  // Show loading if redirecting
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-blue-600">
+                Already Connected! 
+              </h1>
+              <p className="text-gray-600">
+                Redirecting to your dashboard...
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const handleAuthSuccess = () => {
+    setShowSuccess(true);
+    
+    // Start countdown
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          router.push('/dashboard');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Cleanup timer on unmount
+    return () => clearInterval(timer);
+  };
+
+  if (showSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="space-y-4">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center animate-bounce">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-green-600">
+                Successfully Connected! 🎉
+              </h1>
+              <p className="text-gray-600">
+                Welcome to ULink! Redirecting to your dashboard...
+              </p>
+            </div>
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-purple-600 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
+              <div className="w-2 h-2 bg-green-600 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
+            </div>
+            <p className="text-sm text-gray-500">
+              Redirecting in {countdown} second{countdown !== 1 ? 's' : ''}...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg space-y-6">
@@ -25,7 +118,7 @@ export default function ConnectPage() {
 
         {/* Unified Authentication Component */}
         <div className="flex justify-center">
-          <UnifiedAuth />
+          <UnifiedAuth onAuthSuccess={handleAuthSuccess} />
         </div>
 
         {/* Benefits */}
@@ -51,14 +144,6 @@ export default function ConnectPage() {
           </ul>
         </div>
 
-        {/* CTA */}
-        <div className="text-center">
-          <Button asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-            <Link href="/dashboard">
-              Continue to Dashboard →
-            </Link>
-          </Button>
-        </div>
       </div>
     </div>
   );

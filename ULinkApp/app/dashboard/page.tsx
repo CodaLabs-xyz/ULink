@@ -1,4 +1,4 @@
-import { Header } from "@/components/dashboard/header"
+import { Header } from "@/components/header"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ProjectCard } from "@/components/dashboard/project-card"
 import { AddNewProjectCard } from "@/components/dashboard/add-new-project-card"
@@ -70,7 +70,7 @@ const projects = [
 export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-silver-50 text-text-primary">
-      <Header user={user} />
+      <Header />
       <main className="container mx-auto px-4 py-8 md:px-6">
         {/* Stats Overview */}
         <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">

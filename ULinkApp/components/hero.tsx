@@ -9,6 +9,7 @@ export function Hero() {
           src="/images/abstract-blue-gradient.png"
           alt="Hero background"
           fill
+          priority
           className="object-cover opacity-20"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
