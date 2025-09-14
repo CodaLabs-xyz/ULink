@@ -10,6 +10,9 @@ lib/
 ├── index.ts                  # Main exports
 ├── utils.ts                  # Common utilities (cn, formatAddress, etc.)
 ├── wagmi.ts                  # Configurable Wagmi setup
+├── onramp-api.ts            # Coinbase onramp API client functions
+├── cdp-auth.ts              # CDP authentication and JWT generation
+├── to-camel-case.ts         # Utility for snake_case to camelCase conversion
 ├── auth/
 │   └── config.ts            # Authentication configuration helpers
 └── types/
@@ -23,10 +26,11 @@ components/common/
 └── loading-spinner.tsx       # Configurable loading components
 ```
 
-### `/components/wallet` - Web3 Authentication
+### `/components/wallet` - Web3 Authentication & Funding
 ```
 components/wallet/
-└── unified-auth.tsx          # Configurable auth component with CDP + browser wallets
+├── unified-auth.tsx          # Configurable auth component with CDP + browser wallets
+└── fund-wallet.tsx           # Onramp widget for wallet funding with Coinbase integration
 ```
 
 ### `/providers` - Context Providers
@@ -229,5 +233,35 @@ const customAuthConfig = createULinkAuthConfig({
   }
 });
 ```
+
+### 4. Coinbase Onramp Integration
+
+**Onramp Widget Component:**
+```tsx
+import { FundWallet } from '@/components/wallet/fund-wallet';
+
+<FundWallet 
+  onSuccess={() => console.log('Wallet funded successfully!')} 
+  className="custom-styles"
+/>
+```
+
+**API Routes:**
+- `/api/onramp/buy-options` - Fetches available payment methods and cryptocurrencies
+- `/api/onramp/buy-quote` - Creates purchase quotes and onramp URLs
+
+**Environment Variables Required:**
+```env
+CDP_API_KEY_ID=your-cdp-api-key-id
+CDP_API_KEY_SECRET=your-cdp-api-secret
+```
+
+**Key Features:**
+- ✅ Real-time fiat-to-crypto conversion rates
+- ✅ Multiple payment methods (debit card, bank transfer)
+- ✅ Secure JWT-based CDP API authentication
+- ✅ Configurable preset amounts ($10, $25, $50)
+- ✅ Support for multiple networks (Base, Ethereum, etc.)
+- ✅ Production-ready with mock mode for testing
 
 This refactoring makes the ULink codebase highly reusable while maintaining clean separation of concerns. Components can now be easily extracted and used across different applications with minimal modification.

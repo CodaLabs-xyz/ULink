@@ -12,6 +12,7 @@
     "@coinbase/cdp-core": "^0.0.31",
     "@coinbase/cdp-hooks": "^0.0.31",
     "@coinbase/cdp-react": "^0.0.31",
+    "@coinbase/cdp-sdk": "^1.38.0",
     "@coinbase/cdp-wagmi": "^0.0.31",
     "@coinbase/onchainkit": "^1.0.0",
     "@dnd-kit/core": "latest",

@@ -1,5 +1,5 @@
 // Utilities
-export { cn } from './utils';
+export { cn, formatAddress } from './utils';
 
 // Web3 Configuration
 export { 
@@ -13,6 +13,11 @@ export {
   createULinkAuthConfig,
   createBrandedAuthConfig
 } from './auth/config';
+
+// Onramp Integration  
+export { getBuyOptions, createBuyQuote } from './onramp-api';
+export { getCDPCredentials, generateCDPJWT, getOnrampApiBaseUrl, ONRAMP_API_BASE_URL } from './cdp-auth';
+export { convertSnakeToCamelCase } from './to-camel-case';
 
 // Types
 export type {
