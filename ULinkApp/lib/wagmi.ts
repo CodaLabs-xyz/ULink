@@ -27,15 +27,17 @@ export function getConfig() {
         appName: 'ULink',
         preference: 'smartWalletOnly',
       }),
-      walletConnect({
-        projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!,
-        metadata: {
-          name: 'ULink',
-          description: 'Your Links, Beautifully Organized',
-          url: 'https://ulink.app',
-          icons: ['https://ulink.app/icon.png'],
-        },
-      }),
+      ...(process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID ? [
+        walletConnect({
+          projectId: process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID!,
+          metadata: {
+            name: 'ULink',
+            description: 'Your Links, Beautifully Organized',
+            url: process.env.NODE_ENV === 'production' ? 'https://ulink.dev' : 'http://localhost:3000',
+            icons: [process.env.NODE_ENV === 'production' ? 'https://ulink.dev/icon.png' : 'http://localhost:3000/icon.png'],
+          },
+        })
+      ] : []),
     ],
     storage: createStorage({
       storage: cookieStorage,

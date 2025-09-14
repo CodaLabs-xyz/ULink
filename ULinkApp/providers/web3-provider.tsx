@@ -32,11 +32,8 @@ export function Web3Provider({ children }: Web3ProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    console.log('[Web3Provider] Mounting...');
     setMounted(true);
   }, []);
-
-  console.log('[Web3Provider] Render - mounted:', mounted, 'CDP_CONFIG:', CDP_CONFIG);
 
   if (!mounted) {
     // During hydration, render a loading wrapper to prevent provider context issues

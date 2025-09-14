@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { LogOut, User, Mail, Phone, Wallet } from 'lucide-react';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import {
@@ -51,7 +52,8 @@ export function UnifiedAuth({ onAuthSuccess, variant = 'full' }: UnifiedAuthProp
   return variant === 'header' ? <UnifiedAuthHeader onAuthSuccess={onAuthSuccess} /> : <UnifiedAuthFull onAuthSuccess={onAuthSuccess} />;
 }
 
-function UnifiedAuthHeader({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
+function UnifiedAuthHeader({ }: { onAuthSuccess?: () => void }) {
+  const router = useRouter();
   const { isInitialized } = useIsInitialized();
   const { isSignedIn } = useIsSignedIn();
   const { signOut } = useSignOut();
@@ -73,6 +75,9 @@ function UnifiedAuthHeader({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
         disconnect();
       }
       setError(null);
+      
+      // Redirect to home page after successful disconnect
+      router.push('/');
     } catch (error: any) {
       console.error('Sign out error:', error);
       setError(error?.message || 'Failed to sign out');
@@ -135,122 +140,16 @@ function UnifiedAuthHeader({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="default" className="h-9 px-4">
-          Connect Wallet
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80 p-4">
-        <div className="space-y-4">
-          <div className="text-center">
-            <h3 className="font-medium text-sm">Connect Your Wallet</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Choose how you'd like to connect
-            </p>
-          </div>
-          
-          {/* CDP Social Login */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-              <Mail className="w-3 h-3" />
-              <Phone className="w-3 h-3" />
-              <span>Email or Phone</span>
-            </div>
-            <div className="[&>*]:w-full [&>*]:text-sm [&>*]:h-8">
-              <AuthButton onSignInSuccess={onAuthSuccess} />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-1" />
-          </div>
-
-          {/* Browser Wallets */}
-          <HeaderWalletOptions onSuccess={onAuthSuccess} />
-        </div>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button 
+      variant="default" 
+      className="h-9 px-4"
+      onClick={() => window.location.href = '/connect'}
+    >
+      Connect Wallet
+    </Button>
   );
 }
 
-function HeaderWalletOptions({ onSuccess }: { onSuccess?: () => void }) {
-  const { connect, connectors, isPending, error: connectError } = useConnect();
-  const [connectionState, setConnectionState] = useState<'idle' | 'connecting' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleWalletConnect = async (connectorId: string) => {
-    try {
-      setConnectionState('connecting');
-      setErrorMessage(null);
-      
-      const connector = connectors.find(c => c.id === connectorId);
-      if (!connector) {
-        throw new Error('Connector not found');
-      }
-
-      await connect({ connector });
-      onSuccess?.();
-    } catch (error: any) {
-      console.error('Wallet connection error:', error);
-      setErrorMessage(error?.message || 'Failed to connect wallet');
-      setConnectionState('error');
-    } finally {
-      setConnectionState('idle');
-    }
-  };
-
-  // Get available wallet connectors (excluding CDP embedded wallet)
-  const walletConnectors = connectors.filter(connector => 
-    connector.id !== 'cdpEmbeddedWallet' && 
-    connector.id !== 'cdp-embedded-wallet' && 
-    connector.id !== 'io.metamask' && 
-    connector.id !== 'app.phantom' && 
-    connector.id !== 'walletConnect' // Hide WalletConnect for now
-  );
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <Wallet className="w-3 h-3" />
-        <span>Browser Wallets *</span>
-      </div>
-      
-      <div className="space-y-1">
-        {walletConnectors.map((connector) => (
-          <Button
-            key={connector.id}
-            variant="outline"
-            size="sm"
-            className="w-full h-8 text-xs flex items-center justify-center gap-2"
-            onClick={() => handleWalletConnect(connector.id)}
-            disabled={connectionState === 'connecting' || isPending}
-          >
-            {connector.id === 'injected' && <Wallet className="w-3 h-3" />}
-            {connector.id === 'coinbaseWallet' && <div className="w-3 h-3 bg-blue-600 rounded-full" />}
-            <span>
-              {connector.id === 'injected' ? 'Browser Wallet' : 
-               connector.id === 'coinbaseWallet' ? 'Coinbase Wallet' : 
-               connector.name }
-            </span>
-            {connectionState === 'connecting' && (
-              <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            )}
-          </Button>
-        ))}
-      </div>
-      
-      {/* Error Message */}
-      {(errorMessage || connectError) && (
-        <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
-          {errorMessage || connectError?.message || 'Connection failed'}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
   const { isInitialized } = useIsInitialized();
@@ -259,12 +158,42 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
   const { connect, connectors, isPending, error: connectError } = useConnect();
   const [connectionState, setConnectionState] = useState<'idle' | 'connecting' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const cdpAuthButtonRef = useRef<HTMLDivElement>(null);
 
   const isConnected = isSignedIn || !!wagmiAddress;
+
+  // Track if this is initial mount to prevent auto-redirect on page load
+  const [isInitialMount, setIsInitialMount] = useState(true);
+  
+  useEffect(() => {
+    setIsInitialMount(false);
+  }, []);
+  
+  // Trigger success callback when wallet connects (but not on initial mount if already connected)
+  useEffect(() => {
+    if (wagmiAddress && onAuthSuccess && !isInitialMount) {
+      // Only trigger callback if user actually connected during this session
+      const timeoutId = setTimeout(() => {
+        onAuthSuccess();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [wagmiAddress, onAuthSuccess, isInitialMount]);
 
   const handleCDPAuthSuccess = () => {
     console.log('CDP auth successful!');
     onAuthSuccess?.();
+  };
+
+  const handleCustomCDPClick = () => {
+    // Find and click the actual CDP AuthButton
+    if (cdpAuthButtonRef.current) {
+      const cdpButton = cdpAuthButtonRef.current.querySelector('button');
+      if (cdpButton) {
+        cdpButton.click();
+      }
+    }
   };
 
   const handleWalletConnect = async (connectorId: string) => {
@@ -277,8 +206,8 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
         throw new Error('Connector not found');
       }
 
-      await connect({ connector });
-      onAuthSuccess?.();
+      connect({ connector });
+      // Success callback will be triggered by the useEffect when wagmiAddress changes
     } catch (error: any) {
       console.error('Wallet connection error:', error);
       setErrorMessage(error?.message || 'Failed to connect wallet');
@@ -288,9 +217,12 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
     }
   };
 
-  // Get available wallet connectors (excluding CDP embedded wallet)
+  // Get available wallet connectors (excluding CDP embedded wallet and specific wallets)
   const walletConnectors = connectors.filter(connector => 
     connector.id !== 'cdpEmbeddedWallet' && 
+    connector.id !== 'cdp-embedded-wallet' &&
+    connector.id !== 'io.metamask' &&
+    connector.id !== 'app.phantom' &&
     connector.id !== 'walletConnect' // Hide WalletConnect for now as it requires more setup
   );
 
@@ -344,9 +276,21 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
             <Phone className="w-4 h-4" />
             <span>Sign in with Email or Phone</span>
           </div>
-          <div className="[&>*]:w-full">
+          
+          {/* Custom CDP Button */}
+          <Button 
+            onClick={handleCustomCDPClick}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+          >
+            <Mail className="w-4 h-4" />
+            Sign in with Email or Phone
+          </Button>
+          
+          {/* Hidden CDP AuthButton */}
+          <div ref={cdpAuthButtonRef} className="opacity-0 pointer-events-none absolute -z-10">
             <AuthButton onSignInSuccess={handleCDPAuthSuccess} />
           </div>
+          
           <p className="text-xs text-muted-foreground text-center">
             Creates a gasless Smart Account - no browser extension needed
           </p>
@@ -370,13 +314,21 @@ function UnifiedAuthFull({ onAuthSuccess }: { onAuthSuccess?: () => void }) {
               <Button
                 key={connector.id}
                 variant="outline"
-                className="w-full flex items-center justify-center gap-2"
+                className={`w-full flex items-center justify-center gap-2 border-2 hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 ${
+                  connector.id === 'injected' 
+                    ? 'border-orange-200 hover:border-orange-300 hover:bg-orange-50' 
+                    : 'border-blue-200 hover:border-blue-300 hover:bg-blue-50'
+                }`}
                 onClick={() => handleWalletConnect(connector.id)}
                 disabled={connectionState === 'connecting' || isPending}
               >
-                {connector.id === 'injected' && <Wallet className="w-4 h-4" />}
+                {connector.id === 'injected' && <Wallet className="w-4 h-4 text-orange-600" />}
                 {connector.id === 'coinbaseWallet' && <div className="w-4 h-4 bg-blue-600 rounded-full" />}
-                <span>
+                <span className={
+                  connector.id === 'injected' 
+                    ? 'text-orange-700 font-medium' 
+                    : 'text-blue-700 font-medium'
+                }>
                   {connector.id === 'injected' ? 'Browser Wallet' : 
                    connector.id === 'coinbaseWallet' ? 'Coinbase Wallet' : 
                    connector.name}
