@@ -2,6 +2,7 @@ import { Header } from "@/components/header"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { ProjectCard } from "@/components/dashboard/project-card"
 import { AddNewProjectCard } from "@/components/dashboard/add-new-project-card"
+import { DeploymentStatus } from "@/components/dashboard/deployment-status"
 import { BarChart, FolderGit2, Activity } from "lucide-react"
 
 // Mock data based on specifications
@@ -104,6 +105,11 @@ export default function DashboardPage() {
             icon={Activity}
             tier="Gold"
           />
+        </section>
+
+        {/* Smart Contract Deployment Status */}
+        <section className="mt-12">
+          <DeploymentStatus />
         </section>
 
         {/* Projects Grid */}
