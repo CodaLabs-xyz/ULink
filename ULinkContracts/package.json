@@ -1,0 +1,45 @@
+{
+  "name": "ulink-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for ULink platform on Base blockchain",
+  "scripts": {
+    "build": "forge build",
+    "test": "forge test",
+    "test:verbose": "forge test -vvv",
+    "coverage": "forge coverage",
+    "deploy:sepolia": "make deploy-sepolia",
+    "deploy:mainnet": "make deploy-mainnet",
+    "verify": "make verify",
+    "clean": "forge clean",
+    "format": "forge fmt",
+    "lint": "forge fmt --check",
+    "setup": "make setup",
+    "gas-report": "forge test --gas-report",
+    "anvil": "anvil --chain-id 31337",
+    "deploy:local": "make deploy-local"
+  },
+  "keywords": [
+    "solidity",
+    "smart-contracts",
+    "base",
+    "ethereum",
+    "ulink",
+    "web3",
+    "nft",
+    "analytics"
+  ],
+  "author": "ULink Team",
+  "license": "MIT",
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ulink/contracts"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
